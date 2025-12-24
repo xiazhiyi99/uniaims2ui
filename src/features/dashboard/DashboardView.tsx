@@ -10,8 +10,7 @@ import {
     Activity,
     Search,
     Cpu,
-    Zap,
-    Book
+    Zap
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -597,15 +596,6 @@ export const DashboardView = () => {
             </div>
 
             {/* Bottom Right Floating Controls */}
-            <div className="fixed bottom-8 right-8 z-50">
-                <button
-                    onClick={() => window.open('/docs', '_blank')}
-                    className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 font-medium"
-                >
-                    <Book size={20} />
-                    <span>Documentation</span>
-                </button>
-            </div>
 
         </motion.div >
     );

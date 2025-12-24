@@ -11,6 +11,9 @@ import { ReportsView } from './features/reports/ReportsView';
 import { GlobalFooter } from './components/GlobalFooter';
 import { GlobalHeader } from './components/GlobalHeader';
 
+import { DocsView } from './features/docs/DocsView';
+
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
@@ -26,6 +29,7 @@ const AnimatedRoutes = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardView />} />
         <Route path="/upload" element={<UploadView />} />
+        <Route path="/docs" element={<DocsView />} />
 
         {/* Workspace Routes wrapped in MainLayout */}
         <Route element={<MainLayout />}>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, List, Globe, Mail } from 'lucide-react';
+import { LayoutGrid, List, Globe, Mail, Book } from 'lucide-react';
 
 export const GlobalFooter = () => {
     const location = useLocation();
@@ -141,6 +141,14 @@ export const GlobalFooter = () => {
                             >
                                 <Globe size={14} />
                                 <span>{language === 'en' ? 'EN' : '中文'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => window.open('/docs', '_blank')}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/30 hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
+                            >
+                                <Book size={14} />
+                                <span>Documentation</span>
                             </button>
 
                             <button
