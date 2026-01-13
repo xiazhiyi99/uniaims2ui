@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Book, Search, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Book, Search, ChevronRight, ArrowLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -34,6 +35,7 @@ const HoverImage = ({ original, result, alt }: { original: string, result: strin
 };
 
 export const DocsView = () => {
+    const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('Introduction');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -69,14 +71,25 @@ Please check back later or contact support if you need immediate assistance with
 
                 <div className="ml-auto flex items-center gap-4">
                     <span className="text-sm text-muted-foreground">v2.4.0</span>
-                    <a href="/" className="text-sm font-medium hover:text-primary transition-colors">Back to App</a>
+                    <button onClick={() => navigate('/dashboard')} className="text-sm font-medium hover:text-primary transition-colors">Back to App</button>
                 </div>
             </header>
 
-            <div className="flex-1 flex max-w-7xl mx-auto w-full">
+            <div className="flex-1 flex w-full">
                 {/* Sidebar Navigation */}
                 <aside className="w-64 border-r border-border hidden md:block overflow-y-auto max-h-[calc(100vh-4rem)] sticky top-16 py-8 pr-4">
                     <div className="space-y-8">
+                        <div>
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-2 mb-2 transition-colors border border-transparent hover:border-border/50"
+                            >
+                                <ArrowLeft size={16} />
+                                Back to Dashboard
+                            </button>
+                            <div className="h-px bg-border/50 mx-2 my-2" />
+                        </div>
+
                         {DOC_SECTIONS.map((section) => (
                             <div key={section.title}>
                                 <h3 className="font-bold text-sm text-foreground mb-3 px-2">{section.title}</h3>

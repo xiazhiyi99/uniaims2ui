@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, List, Globe, Mail, Book } from 'lucide-react';
 
 import { useSidebar } from '../context/SidebarContext';
 
 export const GlobalFooter = () => {
+    const navigate = useNavigate();
     const location = useLocation();
     const { isCollapsed } = useSidebar();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +20,7 @@ export const GlobalFooter = () => {
 
     // User Menu State
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showContact, setShowContact] = useState(false);
 
     const toggleView = (mode: 'grid' | 'list') => {
         setSearchParams(prev => {
@@ -152,19 +154,63 @@ export const GlobalFooter = () => {
                             </button>
 
                             <button
-                                onClick={() => window.open('/docs', '_blank')}
+                                onClick={() => navigate('/docs')}
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/30 hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
                             >
                                 <Book size={14} />
                                 <span>Documentation</span>
                             </button>
 
-                            <button
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/30 hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
-                            >
-                                <Mail size={14} />
-                                <span>Contact Us</span>
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowContact(!showContact)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/30 transition-colors text-xs font-medium ${showContact ? 'bg-primary/10 text-primary border-primary/20' : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'}`}
+                                >
+                                    <Mail size={14} />
+                                    <span>Contact Us</span>
+                                </button>
+
+                                <AnimatePresence>
+                                    {showContact && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute bottom-full right-0 mb-4 w-72 bg-card border border-border/60 rounded-xl shadow-2xl overflow-hidden glass-panel z-[100] p-6"
+                                        >
+                                            <div className="space-y-6">
+                                                <div className="space-y-2 text-center">
+                                                    <h3 className="font-bold text-foreground">Contact & Support</h3>
+                                                    <p className="text-xs text-muted-foreground">Get in touch with the UniAIMS Team</p>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <div className="p-3 bg-muted/30 rounded-lg border border-border/50 text-center space-y-1">
+                                                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Email Us</div>
+                                                        <a href="mailto:uni-aims@dp.tech" className="text-sm font-medium text-primary hover:underline block">
+                                                            uni-aims@dp.tech
+                                                        </a>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider text-center">Join Community</div>
+                                                        <div className="aspect-square bg-white rounded-lg border border-border flex items-center justify-center p-2">
+                                                            {/* Placeholder for QR Code */}
+                                                            <div className="w-full h-full bg-neutral-100 rounded flex flex-col items-center justify-center text-neutral-400 gap-2">
+                                                                <LayoutGrid size={32} className="opacity-20" />
+                                                                <span className="text-[10px]">Scan QR Code</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-center text-muted-foreground">
+                                                            Scan to join our WeChat Exchange Group
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </motion.div>
                 )}
