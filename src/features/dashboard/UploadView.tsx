@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Upload, Plus, ArrowRight, ArrowLeft, Cpu, Zap } from 'lucide-react';
+import { Upload, Plus, ArrowRight, ArrowLeft, Cpu, Zap, Database, FolderOpen, ChevronDown, Trash2 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -63,23 +63,68 @@ const ANALYSIS_TYPE_INFO = {
                 image: "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=800&auto=format&fit=crop"
             }
         }
+    },
+    stem: {
+        title: "STEM Analysis",
+        image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop",
+        subTasks: {
+            haadf: {
+                id: "haadf",
+                title: "HAADF Atom Detection",
+                description: "High-Angle Annular Dark-Field imaging analysis for direct atom column detection and quantification.",
+                features: ["Atom Counting", "Intensity Analysis", "Lattice Mapping"],
+                image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop"
+            }
+        }
     }
 };
 
 export const UploadView = () => {
     const navigate = useNavigate();
     const [taskName, setTaskName] = useState('');
-    const [taskType, setTaskType] = useState<'particle' | 'fiber'>('particle');
+    const [datasetName, setDatasetName] = useState(`Dataset_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`);
+    const [taskType, setTaskType] = useState<'particle' | 'fiber' | 'stem'>('particle');
     const [subTaskType, setSubTaskType] = useState('default');
     const [modelVersion, setModelVersion] = useState('v1.1');
     const [executionDevice, setExecutionDevice] = useState<'gpu' | 'cpu'>('gpu');
     const [description, setDescription] = useState('');
 
+    const [selectedTasks, setSelectedTasks] = useState<Array<{
+        id: string;
+        taskType: string;
+        subTaskType: string;
+        modelVersion: string;
+        title: string;
+        subTaskTitle: string;
+    }>>([]);
+
+    const handleAddTask = () => {
+        // @ts-ignore
+        const subTaskTitle = ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.title || subTaskType;
+        const newTask = {
+            id: Math.random().toString(36).substr(2, 9),
+            taskType,
+            subTaskType,
+            modelVersion,
+            title: ANALYSIS_TYPE_INFO[taskType].title,
+            subTaskTitle
+        };
+        setSelectedTasks([...selectedTasks, newTask]);
+    };
+
+    const handleRemoveTask = (id: string) => {
+        setSelectedTasks(selectedTasks.filter(t => t.id !== id));
+    };
+
     const handleStart = () => {
         if (taskType === 'particle') {
             navigate('/particles');
-        } else {
+        } else if (taskType === 'fiber') {
             navigate('/fibers');
+        } else {
+            // TODO: Add route for STEM analysis
+            console.log('Navigating to STEM Analysis');
+            navigate('/stem');
         }
     };
 
@@ -107,36 +152,88 @@ export const UploadView = () => {
 
                 {/* Row 1: Upload Area */}
                 <div className="w-full">
-                    <div className="border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl bg-card hover:bg-muted/30 transition-all cursor-pointer group p-10 relative overflow-hidden">
+                    <div className="border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl bg-card hover:bg-muted/30 transition-all cursor-pointer group p-8 relative overflow-hidden">
                         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0))]" />
 
-                        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                            <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
-                                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                    <Upload size={40} />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-2xl font-bold">Upload SEM Images</h3>
-                                    <p className="text-muted-foreground max-w-md">
-                                        Drag & drop your files here, or click to select. Supports TIFF, JPG, PNG, and DM3 formats (Max 500MB).
+                        <div className="relative z-10 flex flex-col md:flex-row gap-8">
+
+                            {/* Left Side: Upload & Dataset Creation */}
+                            <div className="flex-1 flex flex-col space-y-6">
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-bold flex items-center gap-2">
+                                        <Upload size={24} className="text-primary" />
+                                        Upload SEM Images
+                                    </h3>
+                                    <p className="text-muted-foreground">
+                                        Create a new dataset from uploaded images.
                                     </p>
                                 </div>
-                                <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-xl font-bold text-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                                    <Plus size={20} />
-                                    Select Files
-                                </button>
+
+                                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                                    <div className="flex-1 w-full space-y-1.5">
+                                        <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground ml-1">New Dataset Name</label>
+                                        <div className="relative">
+                                            <Database size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                            <input
+                                                type="text"
+                                                value={datasetName}
+                                                onChange={(e) => setDatasetName(e.target.value)}
+                                                className="w-full pl-9 pr-4 py-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                                                placeholder="Enter dataset name..."
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <button className="h-[46px] inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 whitespace-nowrap">
+                                        <Plus size={18} />
+                                        Select Files
+                                    </button>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="relative py-2">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-dashed border-border"></span>
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-card px-2 text-muted-foreground font-semibold">Or use existing data</span>
+                                    </div>
+                                </div>
+
+                                {/* Existing Dataset Selection */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold uppercase tracking-wide text-muted-foreground ml-1">Select Existing Dataset</label>
+                                    <div className="relative group/select">
+                                        <FolderOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-hover/select:text-primary transition-colors" />
+                                        <select
+                                            className="w-full pl-9 pr-4 py-3 bg-muted/50 border border-border rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer hover:bg-muted hover:border-primary/30 appearance-none"
+                                            onClick={(e) => e.stopPropagation()}
+                                            defaultValue=""
+                                        >
+                                            <option value="" disabled>Choose a previously uploaded dataset...</option>
+                                            <option value="ds1">Dataset_20241022_BatchA (12 images)</option>
+                                            <option value="ds2">Dataset_20241020_Titanium (45 images)</option>
+                                            <option value="ds3">Dataset_20241015_ControlGroup (8 images)</option>
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                                            <ChevronDown size={14} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="w-full md:w-auto bg-background/50 backdrop-blur-sm rounded-xl p-5 border border-border/50">
-                                <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Example Data</h4>
-                                <div className="grid grid-cols-4 gap-3">
+                            {/* Right Side: Example Data (Keep as is, but adjust width/layout if needed) */}
+                            <div className="w-full md:w-64 shrink-0 bg-background/50 backdrop-blur-sm rounded-xl p-5 border border-border/50 flex flex-col justify-center">
+                                <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider text-center md:text-left">Example Inputs</h4>
+                                <div className="grid grid-cols-4 md:grid-cols-2 gap-3">
                                     {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className="w-16 h-16 bg-card rounded-lg border border-border/50 flex items-center justify-center text-[10px] text-muted-foreground shadow-sm">
-                                            Img_{i}.tif
+                                        <div key={i} className="aspect-square bg-card rounded-lg border border-border/50 flex items-center justify-center text-[10px] text-muted-foreground shadow-sm group-hover:border-primary/30 transition-colors">
+                                            Img_{i}
                                         </div>
                                     ))}
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -153,7 +250,7 @@ export const UploadView = () => {
 
                     <div className="space-y-8">
                         {/* Visual Type Selector */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <button
                                 onClick={() => { setTaskType('particle'); setSubTaskType('default'); }}
                                 className={cn(
@@ -203,26 +300,53 @@ export const UploadView = () => {
                                     <div className="absolute top-4 right-4 w-3 h-3 bg-primary rounded-full animate-pulse z-20" />
                                 )}
                             </button>
+
+                            <button
+                                onClick={() => { setTaskType('stem'); setSubTaskType('haadf'); }}
+                                className={cn(
+                                    "relative rounded-xl border-2 text-left transition-all hover:border-primary/50 group overflow-hidden h-32",
+                                    taskType === 'stem'
+                                        ? "border-primary bg-primary/5 shadow-sm"
+                                        : "border-border bg-card hover:bg-muted/30"
+                                )}
+                            >
+                                <div className="absolute inset-0 w-full h-full">
+                                    <img
+                                        src={ANALYSIS_TYPE_INFO.stem.image}
+                                        className="absolute right-0 top-0 h-full w-2/3 object-cover [mask-image:linear-gradient(to_left,black,transparent)] opacity-60 group-hover:opacity-80 transition-opacity"
+                                        alt=""
+                                    />
+                                </div>
+                                <div className="relative z-10 p-6 flex flex-col justify-center h-full">
+                                    <h3 className={cn("font-bold text-xl", taskType === 'stem' ? "text-primary" : "text-foreground")}>STEM Analysis</h3>
+                                    <p className="text-sm text-muted-foreground mt-1 max-w-[50%]">Atomic resolution imaging</p>
+                                </div>
+                                {taskType === 'stem' && (
+                                    <div className="absolute top-4 right-4 w-3 h-3 bg-primary rounded-full animate-pulse z-20" />
+                                )}
+                            </button>
                         </div>
 
 
 
                         {/* Dynamic Info Content */}
-                        <div className="flex flex-col md:flex-row gap-8 pt-4 border-t border-border/50">
-                            <div className="flex-1 space-y-6">
+                        <div className="pt-6 border-t border-border/50 space-y-8">
+
+                            {/* Top Row: Selectors & Add Button */}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                                 {/* Sub-task Selector */}
-                                <div>
-                                    <label className="text-sm font-medium text-muted-foreground mb-3 block">Analysis Mode</label>
+                                <div className="space-y-3 flex-1">
+                                    <label className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Analysis Mode</label>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.values(ANALYSIS_TYPE_INFO[taskType].subTasks).map((subTask) => (
                                             <button
                                                 key={subTask.id}
                                                 onClick={() => setSubTaskType(subTask.id)}
                                                 className={cn(
-                                                    "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                                                    "px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all",
                                                     subTaskType === subTask.id
-                                                        ? "bg-primary text-primary-foreground border-primary"
-                                                        : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                                                        ? "bg-primary/10 border-primary text-primary"
+                                                        : "bg-transparent border-transparent hover:bg-muted text-muted-foreground hover:text-foreground"
                                                 )}
                                             >
                                                 {subTask.title}
@@ -231,56 +355,115 @@ export const UploadView = () => {
                                     </div>
                                 </div>
 
-                                {/* Model Version Selector */}
-                                <div className="flex items-center gap-3 mb-6 bg-muted/30 px-4 py-3 rounded-lg border border-border/50 w-fit">
-                                    <label className="text-sm font-medium whitespace-nowrap text-muted-foreground">Model Version:</label>
-                                    <select
-                                        value={modelVersion}
-                                        onChange={(e) => setModelVersion(e.target.value)}
-                                        className="bg-transparent text-sm font-medium outline-none cursor-pointer hover:text-primary transition-colors pr-2"
+                                <div className="flex items-end gap-3">
+                                    {/* Model Version Selector */}
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Model Version</label>
+                                        <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
+                                            <select
+                                                value={modelVersion}
+                                                onChange={(e) => setModelVersion(e.target.value)}
+                                                className="bg-transparent text-sm font-medium outline-none cursor-pointer hover:text-primary transition-colors pr-8 py-1"
+                                            >
+                                                <option value="v1.1">v1.1 (Stable)</option>
+                                                <option value="v1.2-beta">v1.2 (Beta)</option>
+                                                <option value="v1.0">v1.0 (Legacy)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Add Task Button */}
+                                    <button
+                                        onClick={handleAddTask}
+                                        className="h-[46px] px-6 rounded-xl font-bold text-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-2"
                                     >
-                                        <option value="v1.1">v1.1 (Stable)</option>
-                                        <option value="v1.2-beta">v1.2 (Beta)</option>
-                                        <option value="v1.0">v1.0 (Legacy)</option>
-                                    </select>
+                                        <Plus size={18} />
+                                        Add Task
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Bottom Row: Description & Image */}
+                            <div className="flex flex-col md:flex-row gap-8 items-stretch">
+                                <div className="flex-1 space-y-6 bg-muted/10 p-6 rounded-xl border border-border/50">
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-primary rounded-full"></span>
+                                            About this Algorithm
+                                        </h3>
+                                        <p className="text-muted-foreground text-sm leading-relaxed pl-3 border-l-2 border-border/50 ml-0.5">
+                                            {/* @ts-ignore */}
+                                            {ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.description || "Select a mode"}
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Capabilities</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {/* @ts-ignore */}
+                                            {ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.features.map((feature, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 text-sm text-foreground/80 font-medium">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                                    <span>{feature}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
-
-                                <div>
-                                    <h3 className="font-bold text-lg mb-2">About this Algorithm</h3>
-                                    <p className="text-muted-foreground text-sm leading-relaxed">
-                                        {/* @ts-ignore */}
-                                        {ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.description || "Select a mode"}
-                                    </p>
+                                <div className="w-full md:w-[400px] shrink-0">
+                                    <div className="rounded-xl overflow-hidden bg-muted/50 border border-border/50 h-full min-h-[220px] relative group shadow-sm">
+                                        <img
+                                            /* @ts-ignore */
+                                            src={ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.image}
+                                            alt="Analysis Preview"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+                                            <div className="text-white">
+                                                <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Preview</p>
+                                                {/* @ts-ignore */}
+                                                <p className="font-semibold">{ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.title} Result</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div className="space-y-3">
-                                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Capabilities</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {/* @ts-ignore */}
-                                        {ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.features.map((feature, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                <span>{feature}</span>
+                            {/* Task Queue List */}
+                            {selectedTasks.length > 0 && (
+                                <div className="mt-8 border-t border-border/50 pt-6">
+                                    <h4 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-4">Pipeline Tasks ({selectedTasks.length})</h4>
+                                    <div className="space-y-3">
+                                        {selectedTasks.map((task) => (
+                                            <div key={task.id} className="flex items-center justify-between p-4 bg-background border border-border/50 rounded-xl hover:border-primary/30 transition-colors shadow-sm">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs ring-4 ring-background">
+                                                        {task.taskType.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold text-foreground flex items-center gap-2">
+                                                            {task.subTaskTitle}
+                                                            <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border text-muted-foreground">{task.modelVersion}</span>
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                                            {task.title} • ID: {task.id}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemoveTask(task.id)}
+                                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                                                    title="Remove Task"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="w-full md:w-1/2 shrink-0">
-                                <div className="rounded-xl overflow-hidden bg-muted/50 border border-border/50 h-full min-h-[180px] relative group">
-                                    <img
-                                        /* @ts-ignore */
-                                        src={ANALYSIS_TYPE_INFO[taskType].subTasks[subTaskType]?.image}
-                                        alt="Analysis Preview"
-                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 text-xs font-medium text-foreground/50">
-                                        Preview
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

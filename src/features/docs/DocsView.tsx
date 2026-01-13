@@ -1,28 +1,49 @@
 import { useState } from 'react';
-import { Book, FileText, Search, ChevronRight } from 'lucide-react';
+import { Book, Search, ChevronRight } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css'; // Importing styles for code highlighting
 
-const DOC_SECTIONS = [
-    {
-        title: 'Getting Started',
-        items: ['Introduction', 'Installation', 'Quick Start Guide', 'System Requirements']
-    },
-    {
-        title: 'Core Concepts',
-        items: ['Particle Analysis', 'Fiber Analysis', 'Model Architecture', 'Workspace Management']
-    },
-    {
-        title: 'Advanced Features',
-        items: ['Fine-tuning Models', 'Custom Datasets', 'API Integration', 'Reporting Tools']
-    },
-    {
-        title: 'Troubleshooting',
-        items: ['Common Errors', 'Performance Optimization', 'FAQ', 'Support']
-    }
-];
+import { DOC_CONTENT, DOC_SECTIONS } from './docData';
+
+
+// Custom component for interactive image comparison
+const HoverImage = ({ original, result, alt }: { original: string, result: string, alt: string }) => {
+    console.log('HoverImage Props:', { original, result });
+    return (
+        <div className="relative rounded-xl overflow-hidden border border-border group cursor-crosshair max-w-lg mx-auto my-6 shadow-sm">
+            <div className="aspect-[4/3] relative bg-muted/20">
+                <img
+                    src={original}
+                    alt={alt}
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+                />
+                <img
+                    src={result}
+                    alt={alt + " Result"}
+                    className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm pointer-events-none z-10">
+                    <span className="group-hover:hidden">Original</span>
+                    <span className="hidden group-hover:inline">Result</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const DocsView = () => {
     const [activeSection, setActiveSection] = useState('Introduction');
     const [searchQuery, setSearchQuery] = useState('');
+
+    const content = DOC_CONTENT[activeSection] || `
+# ${activeSection}
+
+*Documentation for this section is coming soon.*
+
+Please check back later or contact support if you need immediate assistance with **${activeSection}**.
+`;
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -60,19 +81,48 @@ export const DocsView = () => {
                             <div key={section.title}>
                                 <h3 className="font-bold text-sm text-foreground mb-3 px-2">{section.title}</h3>
                                 <ul className="space-y-1">
-                                    {section.items.map((item) => (
-                                        <li key={item}>
-                                            <button
-                                                onClick={() => setActiveSection(item)}
-                                                className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${activeSection === item
-                                                    ? 'bg-primary/10 text-primary font-medium'
-                                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                                                    }`}
-                                            >
-                                                {item}
-                                            </button>
-                                        </li>
-                                    ))}
+                                    {section.items.map((item) => {
+
+                                        if (typeof item === 'string') {
+                                            return (
+                                                <li key={item}>
+                                                    <button
+                                                        onClick={() => setActiveSection(item)}
+                                                        className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${activeSection === item
+                                                            ? 'bg-primary/10 text-primary font-medium'
+                                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                                            }`}
+                                                    >
+                                                        {item}
+                                                    </button>
+                                                </li>
+                                            );
+                                        } else {
+                                            // Nested Group
+                                            return (
+                                                <li key={item.label}>
+                                                    <div className="px-3 py-1.5 text-xs font-semibold text-foreground/70 flex items-center gap-2">
+                                                        {item.label}
+                                                    </div>
+                                                    <ul className="pl-2 space-y-1 mt-0.5 border-l border-border/50 ml-3">
+                                                        {item.items.map((subItem) => (
+                                                            <li key={subItem}>
+                                                                <button
+                                                                    onClick={() => setActiveSection(subItem)}
+                                                                    className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${activeSection === subItem
+                                                                        ? 'bg-primary/10 text-primary font-medium'
+                                                                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                                                        }`}
+                                                                >
+                                                                    {subItem}
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </li>
+                                            );
+                                        }
+                                    })}
                                 </ul>
                             </div>
                         ))}
@@ -90,56 +140,45 @@ export const DocsView = () => {
                             <span className="text-foreground font-medium">{activeSection}</span>
                         </div>
 
-                        <h1 className="text-4xl font-extrabold tracking-tight mb-6">{activeSection}</h1>
+                        {/* Markdown Render Area */}
+                        <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h1:tracking-tight prose-a:text-primary prose-img:rounded-xl">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeHighlight]}
+                                components={{
+                                    code(props) {
+                                        const { children, className, node, ...rest } = props
+                                        const match = /language-([\w-]+)/.exec(className || '')
+                                        if (match && match[1] === 'hover-image') {
 
-                        <div className="prose prose-slate dark:prose-invert max-w-none">
-                            <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-                                Welcome to the comprehensive documentation for the Unified AI Materials Science (UniAIMS) platform. This guide covers everything from initial setup to advanced model fine-tuning.
-                            </p>
+                                            try {
+                                                const data = JSON.parse(String(children).replace(/\n$/, ''))
+                                                return <HoverImage {...data} />
+                                            } catch (e) {
+                                                return <pre className="text-red-500 text-xs p-2 border border-red-200 rounded">Error parsing hover-image data</pre>
+                                            }
+                                        }
+                                        return <code className={className} {...rest}>{children}</code>
+                                    }
+                                }}
+                            >
+                                {content}
+                            </ReactMarkdown>
+                        </div>
 
-                            <div className="bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-500 p-6 my-8 rounded-r-xl">
-                                <h4 className="flex items-center gap-2 font-bold text-blue-700 dark:text-blue-400 mb-2">
-                                    <FileText size={18} />
-                                    Note
-                                </h4>
-                                <p className="text-blue-600 dark:text-blue-300 text-sm">
-                                    This is a mock documentation page. In a production environment, this would likely be rendered from Markdown files or hosted on a separate documentation platform like GitBook or Docusaurus.
-                                </p>
-                            </div>
-
-                            <h2 className="text-2xl font-bold mt-10 mb-4"> Overview</h2>
-                            <p className="mb-4 text-muted-foreground">
-                                UniAIMS allows researchers to automate the analysis of SEM (Scanning Electron Microscope) imagery. By leveraging state-of-the-art deep learning models, we provide tools for:
-                            </p>
-                            <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-8">
-                                <li><strong>Particle Size Distribution:</strong> Automatically detect and measure nano-particles.</li>
-                                <li><strong>Fiber Orientation & Diameter:</strong> Analyze fibrous materials like carbon nanotubes.</li>
-                                <li><strong>Custom Model Training:</strong> Fine-tune base models on your specific datasets for improved accuracy.</li>
-                            </ul>
-
-                            <h2 className="text-2xl font-bold mt-10 mb-4">Quick Links</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose">
-                                <a href="#" className="block p-6 border border-border rounded-xl hover:border-primary/50 hover:shadow-md transition-all group">
-                                    <h3 className="font-bold mb-2 group-hover:text-primary transition-colors">Installation Guide</h3>
-                                    <p className="text-sm text-muted-foreground">Step-by-step instructions to set up the environment.</p>
-                                </a>
-                                <a href="#" className="block p-6 border border-border rounded-xl hover:border-primary/50 hover:shadow-md transition-all group">
-                                    <h3 className="font-bold mb-2 group-hover:text-primary transition-colors">API Reference</h3>
-                                    <p className="text-sm text-muted-foreground">Detailed endpoints for backend integration.</p>
-                                </a>
-                            </div>
+                        <div className="mt-16 pt-8 border-t border-border flex justify-between text-sm text-muted-foreground">
+                            <span>Last updated: Oct 24, 2023</span>
+                            <a href="#" className="hover:text-foreground transition-colors">Edit this page on GitHub</a>
                         </div>
                     </div>
                 </main>
 
-                {/* On this page (Table of Contents) */}
+                {/* On this page (Table of Contents) - Simplified placeholder */}
                 <aside className="w-64 hidden xl:block py-10 pl-8 text-sm">
                     <h4 className="font-bold text-foreground mb-4">On this page</h4>
                     <ul className="space-y-3 text-muted-foreground border-l border-border ml-1">
                         <li className="pl-4 hover:text-foreground cursor-pointer border-l-2 border-transparent hover:border-primary -ml-[2px]">Overview</li>
-                        <li className="pl-4 hover:text-foreground cursor-pointer border-l-2 border-transparent hover:border-primary -ml-[2px]">Core Features</li>
-                        <li className="pl-4 hover:text-foreground cursor-pointer border-l-2 border-transparent hover:border-primary -ml-[2px]">Quick Links</li>
-                        <li className="pl-4 hover:text-foreground cursor-pointer border-l-2 border-transparent hover:border-primary -ml-[2px]">Examples</li>
+                        <li className="pl-4 hover:text-foreground cursor-pointer border-l-2 border-transparent hover:border-primary -ml-[2px]">{activeSection} Details</li>
                     </ul>
                 </aside>
             </div>

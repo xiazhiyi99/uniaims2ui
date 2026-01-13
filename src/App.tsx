@@ -5,11 +5,19 @@ import { DashboardView } from './features/dashboard/DashboardView';
 import { UploadView } from './features/dashboard/UploadView';
 import { ParticleAnalysisView } from './features/recognition/ParticleAnalysisView';
 import { FiberAnalysisView } from './features/recognition/FiberAnalysisView';
-import { AnalysisHubView } from './features/analysis/AnalysisHubView';
+// import { AnalysisHubView } from './features/analysis/AnalysisHubView';
 import { FineTuningView } from './features/finetuning/FineTuningView';
 import { ReportsView } from './features/reports/ReportsView';
 import { GlobalFooter } from './components/GlobalFooter';
 import { GlobalHeader } from './components/GlobalHeader';
+import { DataBatchDetailView } from './features/data/DataBatchDetailView';
+import { DataBatchOverview } from './features/data/DataBatchOverview';
+import { DataBatchBrowser } from './features/data/DataBatchBrowser';
+import { DataBatchTasks } from './features/data/DataBatchTasks';
+import { CreateDataBatchView } from './features/data/CreateDataBatchView';
+import { AttributeAnalysisView } from './features/analysis/AttributeAnalysisView';
+import { CorrelationAnalysisView } from './features/analysis/CorrelationAnalysisView';
+import { ComparisonAnalysisView } from './features/analysis/ComparisonAnalysisView';
 
 import { DocsView } from './features/docs/DocsView';
 
@@ -20,7 +28,7 @@ const AnimatedRoutes = () => {
   // Group all workstation routes under a single key to prevent re-animation 
   // when switching between them (e.g. Analysis -> Reports).
   // Only animate when switching between "Dashboard" context and "Workstation" context.
-  const isDashboard = location.pathname.startsWith('/dashboard') || location.pathname === '/' || location.pathname === '/upload';
+  const isDashboard = location.pathname.startsWith('/dashboard') || location.pathname === '/' || location.pathname === '/upload' || location.pathname === '/data/new';
   const animationKey = isDashboard ? 'dashboard' : 'workstation';
 
   return (
@@ -29,28 +37,46 @@ const AnimatedRoutes = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardView />} />
         <Route path="/upload" element={<UploadView />} />
+        <Route path="/data/new" element={<CreateDataBatchView />} />
         <Route path="/docs" element={<DocsView />} />
 
         {/* Workspace Routes wrapped in MainLayout */}
         <Route element={<MainLayout />}>
-          <Route path="/particles" element={<ParticleAnalysisView />} />
-          <Route path="/fibers" element={<FiberAnalysisView />} />
-          <Route path="/analysis" element={<AnalysisHubView />} />
+          <Route path="/data/:batchId" element={<DataBatchDetailView />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<DataBatchOverview />} />
+            <Route path="browser" element={<DataBatchBrowser />} />
+            <Route path="tasks" element={<DataBatchTasks />} />
+          </Route>
+          <Route path="/:taskId/particles" element={<ParticleAnalysisView />} />
+          <Route path="/:taskId/fibers" element={<FiberAnalysisView />} />
+          <Route path="/:taskId/analysis">
+            <Route index element={<Navigate to="attribute" replace />} />
+            <Route path="attribute" element={<AttributeAnalysisView />} />
+            <Route path="correlation" element={<CorrelationAnalysisView />} />
+            <Route path="comparison" element={<ComparisonAnalysisView />} />
+          </Route>
           <Route path="/finetune" element={<FineTuningView />} />
-          <Route path="/reports" element={<ReportsView />} />
+          <Route path="/:taskId/reports" element={<ReportsView />} />
         </Route>
       </Routes>
     </AnimatePresence>
   );
 };
 
+import { SidebarProvider } from './context/SidebarContext';
+
+// ...
+
 function App() {
   return (
-    <BrowserRouter>
-      <GlobalHeader />
-      <AnimatedRoutes />
-      <GlobalFooter />
-    </BrowserRouter>
+    <SidebarProvider>
+      <BrowserRouter>
+        <GlobalHeader />
+        <AnimatedRoutes />
+        <GlobalFooter />
+      </BrowserRouter>
+    </SidebarProvider>
   );
 }
 

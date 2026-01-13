@@ -1,0 +1,5 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#f0f0f0" />
+  <circle cx="200" cy="150" r="80" fill="none" stroke="blue" stroke-width="4" />
+  <text x="10" y="290" font-family="Arial" font-size="14" fill="#666">Spherical Result</text>
+</svg>

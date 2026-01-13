@@ -1,0 +1,6 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#f0f0f0" />
+  <path d="M100,100 L150,80 L180,120 L130,160 Z" fill="#666" />
+  <path d="M250,200 L300,180 L350,220 L280,260 Z" fill="#666" />
+  <text x="10" y="290" font-family="Arial" font-size="14" fill="#666">Irregular Input</text>
+</svg>

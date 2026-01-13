@@ -1,0 +1,7 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#f0f0f0" />
+  <circle cx="100" cy="100" r="30" fill="#808080" />
+  <circle cx="200" cy="150" r="40" fill="#808080" />
+  <circle cx="300" cy="80" r="25" fill="#808080" />
+  <text x="10" y="290" font-family="Arial" font-size="14" fill="#666">Original SEM Image</text>
+</svg>

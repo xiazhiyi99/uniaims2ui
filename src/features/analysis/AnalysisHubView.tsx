@@ -1,4 +1,5 @@
 import { BarChart3, Download, List } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import {
     BarChart,
     Bar,
@@ -27,11 +28,13 @@ const IMAGE_BREAKDOWN = [
 ];
 
 export const AnalysisHubView = () => {
+    const { taskId } = useParams();
+
     return (
         <div className="h-full flex flex-col gap-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Task Analysis: Batch #42</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Task Analysis: {taskId || 'Unknown Task'}</h2>
                     <p className="text-muted-foreground">Aggregated results across 5 images.</p>
                 </div>
                 <div className="flex gap-3">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
     BarChart3,
@@ -8,18 +8,33 @@ import {
     ArrowLeft,
     Activity,
     Database,
-    PenTool
+    PenTool,
+    ChevronLeft,
+    ChevronRight,
+    Settings
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SIDEBAR_CONFIG, type MenuItem } from '../config/sidebarMenus';
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
+const ICON_MAP: Record<string, ReactNode> = {
+    BarChart3: <BarChart3 size={20} />,
+    Settings2: <Settings2 size={20} />,
+    Settings: <Settings size={20} />,
+    Layers: <Layers size={20} />,
+    FileText: <FileText size={20} />,
+    Activity: <Activity size={20} />,
+    Database: <Database size={20} />,
+    PenTool: <PenTool size={20} />
+};
+
 interface SidebarItemProps {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     isActive?: boolean;
     onClick?: () => void;
@@ -30,180 +45,166 @@ const SidebarItem = ({ icon, label, isActive, onClick, collapsed }: SidebarItemP
     <button
         onClick={onClick}
         className={cn(
-            "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group w-full",
+            "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group w-full overflow-hidden",
             isActive
                 ? "bg-primary/10 text-primary font-medium"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            collapsed && "justify-center p-3"
+            collapsed && "p-3"
         )}
     >
-        <div className={cn("text-xl", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
+        <div className={cn("text-xl shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
             {icon}
         </div>
-        {!collapsed && <span>{label}</span>}
+        <motion.span
+            animate={{ opacity: collapsed ? 0 : 1 }}
+            transition={{ duration: 0.2 }}
+            className="whitespace-nowrap"
+        >
+            {collapsed ? '\u00A0' : label}
+        </motion.span>
     </button>
 );
+
+import { useSidebar } from '../context/SidebarContext';
 
 export const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Collapsed State from Context
+    const { isCollapsed, toggleSidebar: toggleCollapsed } = useSidebar();
+
+    const [taskId, setTaskId] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        const parts = location.pathname.split('/');
+        if (parts.length >= 3 && parts[1] !== 'dashboard' && parts[1] !== 'finetune') {
+            setTaskId(parts[1]);
+        }
+    }, [location.pathname]);
+
+
     const [searchParams, setSearchParams] = useSearchParams();
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportPath, setExportPath] = useState('/data/datasets/new_batch_01');
 
-    // Persistent Mode State
-    // Remembers if the user is in "Particle" or "Fiber" mode even when navigating to neutral pages (like Reports)
     const [mode, setMode] = useState<'particle' | 'fiber' | null>(() => {
-        if (location.pathname.startsWith('/particles')) return 'particle';
-        if (location.pathname.startsWith('/fibers')) return 'fiber';
+        if (location.pathname.includes('/particles')) return 'particle';
+        if (location.pathname.includes('/fibers')) return 'fiber';
         return localStorage.getItem('uniaims_mode') as 'particle' | 'fiber' | null;
     });
 
     useEffect(() => {
-        if (location.pathname.startsWith('/particles')) {
+        if (location.pathname.includes('/particles')) {
             setMode('particle');
             localStorage.setItem('uniaims_mode', 'particle');
-        } else if (location.pathname.startsWith('/fibers')) {
+        } else if (location.pathname.includes('/fibers')) {
             setMode('fiber');
             localStorage.setItem('uniaims_mode', 'fiber');
         }
     }, [location.pathname]);
 
-    const isActive = (path: string) => {
-        if (path === '/dashboard') {
-            return location.pathname === '/' || location.pathname === '/dashboard';
-        }
-        return location.pathname.startsWith(path);
+    const currentConfigKey = location.pathname.startsWith('/finetune')
+        ? 'finetune'
+        : location.pathname.startsWith('/data/')
+            ? 'data'
+            : (mode || 'particle');
+
+    const effectiveKey = currentConfigKey || 'particle';
+    const currentSections = SIDEBAR_CONFIG[effectiveKey] || [];
+
+    const resolvePath = (path: string | undefined) => {
+        if (!path) return undefined;
+        return path.replace(':taskId', taskId || 'unknown');
     };
 
-    // Determine Context based on persisted mode
-    const isParticleMode = mode === 'particle';
-    const isFiberMode = mode === 'fiber';
-    const isFineTuning = location.pathname.startsWith('/finetune');
-    // If we are in Dashboard, Report, Fine-tuning, maybe show all or standard set?
-    // For now, let's hide the "Other" recognition tool if one is active.
+    const checkActive = (item: MenuItem) => {
+        if (item.params) {
+            return Object.entries(item.params).every(([k, v]) => searchParams.get(k) === v);
+        }
+        if (item.path) {
+            const resolved = resolvePath(item.path);
+            return resolved ? location.pathname.startsWith(resolved) : false;
+        }
+        return false;
+    };
+
+    const handleItemClick = (item: MenuItem) => {
+        if (item.action === 'open_export_modal') {
+            setShowExportModal(true);
+            return;
+        }
+
+        if (item.path) {
+            const resolved = resolvePath(item.path);
+            if (resolved) navigate(resolved);
+        }
+
+        if (item.params) {
+            setSearchParams(prev => {
+                const newParams = new URLSearchParams(prev);
+                Object.entries(item.params || {}).forEach(([k, v]) => {
+                    newParams.set(k, String(v));
+                });
+                return newParams;
+            });
+        }
+    };
 
     return (
         <>
-            <aside className="h-screen w-64 border-r border-border bg-card p-4 pt-20 pb-20 flex flex-col shadow-sm">
-                <div className="space-y-6 flex-1">
+            <motion.aside
+                initial={{ width: 256 }}
+                animate={{ width: isCollapsed ? 80 : 256 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="h-screen border-r border-border bg-card p-4 pt-20 pb-4 flex flex-col shadow-sm relative z-20"
+            >
+                <button
+                    onClick={() => toggleCollapsed()}
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 bg-card border border-border rounded-full p-1.5 shadow-md hover:bg-muted text-muted-foreground hover:text-foreground transition-all z-50 flex items-center justify-center cursor-pointer"
+                >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                </button>
+
+                <div className="space-y-6 flex-1 overflow-x-hidden">
                     <div className="mb-2">
                         <SidebarItem
                             icon={<ArrowLeft size={20} />}
                             label="Back to Dashboard"
                             onClick={() => navigate('/dashboard')}
+                            collapsed={isCollapsed}
                         />
                     </div>
 
-                    {isFineTuning ? (
-                        /* Fine-tuning Context Menu */
-                        <>
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Training</p>
-                                <div className="space-y-1">
-                                    <SidebarItem
-                                        icon={<Settings2 size={20} />}
-                                        label="Configuration"
-                                        isActive={searchParams.get('tab') === 'settings' || !searchParams.get('tab')}
-                                        onClick={() => setSearchParams({ tab: 'settings' })}
-                                    />
-                                    <SidebarItem
-                                        icon={<Activity size={20} />}
-                                        label="Training Dashboard"
-                                        isActive={searchParams.get('tab') === 'training'}
-                                        onClick={() => setSearchParams({ tab: 'training' })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Data</p>
-                                <div className="space-y-1">
-                                    <SidebarItem
-                                        icon={<Database size={20} />}
-                                        label="Data Management"
-                                        isActive={searchParams.get('tab') === 'data'}
-                                        onClick={() => setSearchParams({ tab: 'data' })}
-                                    />
-                                    <SidebarItem
-                                        icon={<PenTool size={20} />}
-                                        label="Annotation Studio"
-                                        isActive={searchParams.get('tab') === 'annotation'}
-                                        onClick={() => setSearchParams({ tab: 'annotation' })}
-                                    />
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        /* Standard Workstation Menu */
-                        <>
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Workstation</p>
-                                <div className="space-y-1">
-
-                                    {/* Conditional Rendering based on Context */}
-                                    {(isParticleMode) && (
-                                        <SidebarItem
-                                            icon={<Layers size={20} />}
-                                            label="Particle Analysis"
-                                            isActive={isActive('/particles')}
-                                            onClick={() => navigate('/particles')}
-                                        />
-                                    )}
-
-                                    {(isFiberMode) && (
-                                        <SidebarItem
-                                            icon={<Activity size={20} />}
-                                            label="Fiber Analysis"
-                                            isActive={isActive('/fibers')}
-                                            onClick={() => navigate('/fibers')}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Results</p>
-                                <div className="space-y-1">
-                                    <SidebarItem
-                                        icon={<BarChart3 size={20} />}
-                                        label="Analysis Hub"
-                                        isActive={searchParams.get('analysis') === 'true'}
-                                        onClick={() => {
-                                            setSearchParams(prev => {
-                                                const newParams = new URLSearchParams(prev);
-                                                newParams.set('analysis', 'true');
-                                                return newParams;
-                                            });
-                                        }}
-                                    />
-                                    <SidebarItem
-                                        icon={<FileText size={20} />}
-                                        label="Reports"
-                                        isActive={isActive('/reports')}
-                                        onClick={() => navigate('/reports')}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">System</p>
-                                <div className="space-y-1">
-                                    <div className="space-y-1">
-                                        <SidebarItem
-                                            icon={<Database size={20} />}
-                                            label="Save to Dataset"
-                                            onClick={() => setShowExportModal(true)}
-                                        />
+                    {currentSections.map((section, idx) => (
+                        <div key={section.title + idx}>
+                            <div className="h-4 mb-3 px-2">
+                                {!isCollapsed ? (
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">
+                                        {section.title}
+                                    </p>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full" title={section.title}>
+                                        <div className="w-4 h-[2px] bg-muted-foreground/20 rounded-full" />
                                     </div>
-                                </div>
+                                )}
                             </div>
-                        </>
-                    )}
+                            <div className="space-y-1">
+                                {section.items.map((item, itemIdx) => (
+                                    <SidebarItem
+                                        key={item.label + itemIdx}
+                                        icon={ICON_MAP[item.icon] || <Activity size={20} />}
+                                        label={item.label}
+                                        isActive={checkActive(item)}
+                                        onClick={() => handleItemClick(item)}
+                                        collapsed={isCollapsed}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
-
-
-            </aside>
+            </motion.aside>
 
             {/* Data Export Modal */}
             <AnimatePresence>

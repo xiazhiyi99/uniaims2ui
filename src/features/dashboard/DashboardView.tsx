@@ -10,7 +10,13 @@ import {
     Activity,
     Search,
     Cpu,
-    Zap
+    Zap,
+    Database,
+    User,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,6 +24,119 @@ import { twMerge } from 'tailwind-merge';
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
+
+// Pagination Helper Component
+const PaginationControls = ({
+    currentPage,
+    totalItems,
+    itemsPerPage,
+    onPageChange,
+    onItemsPerPageChange
+}: {
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    onPageChange: (page: number) => void;
+    onItemsPerPageChange: (perPage: number) => void;
+}) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    if (totalItems === 0) return null;
+
+    return (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-border/40 mt-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+                <span>Show</span>
+                <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                        onItemsPerPageChange(Number(e.target.value));
+                        onPageChange(1); // Reset to first page on size change
+                    }}
+                    className="bg-background border border-border rounded px-2 py-1 focus:ring-2 focus:ring-primary/20 outline-none h-8"
+                >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                </select>
+                <span>items per page</span>
+                <span className="mx-2 hidden sm:inline">|</span>
+                <span className="hidden sm:inline">Showing {startItem}-{endItem} of {totalItems}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => onPageChange(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronsLeft size={16} />
+                </button>
+                <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+
+                <div className="flex items-center gap-1 font-medium text-foreground">
+                    {[...Array(totalPages)].map((_, i) => {
+                        const page = i + 1;
+                        if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                            return (
+                                <button
+                                    key={page}
+                                    onClick={() => onPageChange(page)}
+                                    className={cn(
+                                        "w-8 h-8 rounded flex items-center justify-center transition-colors border",
+                                        currentPage === page
+                                            ? "bg-primary text-primary-foreground border-primary"
+                                            : "bg-background border-border hover:bg-muted"
+                                    )}
+                                >
+                                    {page}
+                                </button>
+                            );
+                        } else if (
+                            (page === currentPage - 2 && page > 1) ||
+                            (page === currentPage + 2 && page < totalPages)
+                        ) {
+                            return <span key={page} className="px-1 text-muted-foreground">...</span>;
+                        }
+                        return null;
+                    })}
+                </div>
+
+                <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronRight size={16} />
+                </button>
+                <button
+                    onClick={() => onPageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronsRight size={16} />
+                </button>
+            </div>
+
+            <div className="sm:hidden text-xs">
+                {startItem}-{endItem} of {totalItems}
+            </div>
+        </div>
+    );
+};
 
 // Mock Data for Task History
 const RECENT_TASKS = [
@@ -30,6 +149,12 @@ const RECENT_TASKS = [
 const FINE_TUNING_TASKS = [
     { id: 'FT-002', name: 'Fiber Model Optimization', date: 'Running', items: 0, status: 'processing', type: 'training', model: 'Base: v1.1', thumbnail: 'bg-indigo-500/10' },
     { id: 'FT-001', name: 'Particle v2 Adaptation', date: '2023-10-15', items: 0, status: 'completed', type: 'training', model: 'Base: v1.0', thumbnail: 'bg-rose-500/10' },
+];
+
+const DATA_BATCHES = [
+    { id: 'DB-2023-001', name: 'Graphene Oxide Sample Set A', date: '2023-10-24', uploader: 'Xia Zhiyi', imageCount: 124, linkedTasks: 2, status: 'Active' },
+    { id: 'DB-2023-002', name: 'Carbon Nanotubes Batch 4', date: '2023-10-23', uploader: 'Li Wei', imageCount: 45, linkedTasks: 1, status: 'Active' },
+    { id: 'DB-2023-003', name: 'Unknown Polymer Mix', date: '2023-10-20', uploader: 'Xia Zhiyi', imageCount: 12, linkedTasks: 1, status: 'Archived' },
 ];
 
 const RESOURCE_STATUS = {
@@ -45,19 +170,29 @@ const USER_QUEUE = [
 export const DashboardView = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'analysis' | 'training' | 'resources'>('analysis');
+    const [activeTab, setActiveTab] = useState<'data' | 'analysis' | 'training' | 'resources'>('analysis');
 
     // Analysis Filters
     const [analysisSearch, setAnalysisSearch] = useState('');
     const [analysisTimeFilter, setAnalysisTimeFilter] = useState('all');
     const [analysisTaskFilter, setAnalysisTaskFilter] = useState('all');
     const [analysisStatusFilter, setAnalysisStatusFilter] = useState('all');
+    const [analysisPage, setAnalysisPage] = useState(1);
+    const [analysisPerPage, setAnalysisPerPage] = useState(10);
 
     // Finetune Filters
     const [finetuneSearch, setFinetuneSearch] = useState('');
     const [finetuneTimeFilter, setFinetuneTimeFilter] = useState('all');
     const [finetuneTaskFilter, setFinetuneTaskFilter] = useState('all');
     const [finetuneStatusFilter, setFinetuneStatusFilter] = useState('all');
+    const [finetunePage, setFinetunePage] = useState(1);
+    const [finetunePerPage, setFinetunePerPage] = useState(10);
+
+    // Data Filters
+    const [dataSearch, setDataSearch] = useState('');
+    const [dataTimeFilter, setDataTimeFilter] = useState('all');
+    const [dataPage, setDataPage] = useState(1);
+    const [dataPerPage, setDataPerPage] = useState(10);
 
     // Filter Logic
     const filterTasks = (tasks: any[], search: string, time: string, type: string, status: string) => {
@@ -88,12 +223,18 @@ export const DashboardView = () => {
     };
 
     const filteredAnalysisTasks = filterTasks(RECENT_TASKS, analysisSearch, analysisTimeFilter, analysisTaskFilter, analysisStatusFilter);
+    const visibleAnalysisTasks = filteredAnalysisTasks.slice((analysisPage - 1) * analysisPerPage, analysisPage * analysisPerPage);
+
     const filteredFinetuningTasks = filterTasks(FINE_TUNING_TASKS, finetuneSearch, finetuneTimeFilter, finetuneTaskFilter, finetuneStatusFilter);
+    const visibleFinetuningTasks = filteredFinetuningTasks.slice((finetunePage - 1) * finetunePerPage, finetunePage * finetunePerPage);
+
+    const filteredDataBatches = filterTasks(DATA_BATCHES, dataSearch, dataTimeFilter, 'all', 'all');
+    const visibleDataBatches = filteredDataBatches.slice((dataPage - 1) * dataPerPage, dataPage * dataPerPage);
 
     // View Mode from URL
-    const viewMode = searchParams.get('view') || 'grid';
+    const viewMode = searchParams.get('view') || 'list';
     // Language mock (in real app, use Context)
-    const language = 'en';
+
 
     const handleCreateAnalysis = () => {
         navigate('/upload');
@@ -110,16 +251,7 @@ export const DashboardView = () => {
             <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 relative">
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-                            {language === 'en' ? 'Mission Control' : '任务控制中心'}
-                        </h1>
-                        <p className="text-muted-foreground text-lg">
-                            {language === 'en' ? 'Manage your analysis tasks and model training.' : '管理您的分析任务和模型训练。'}
-                        </p>
-                    </div>
-
+                <div className="flex mb-2">
                     {/* Tab Switcher */}
                     <div className="flex p-1 bg-muted/50 rounded-xl border border-border/50">
                         <button
@@ -141,6 +273,16 @@ export const DashboardView = () => {
                             Fine-tuning Tasks
                         </button>
                         <button
+                            onClick={() => setActiveTab('data')}
+                            className={cn(
+                                "px-6 py-2 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center gap-2",
+                                activeTab === 'data' ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                            )}
+                        >
+                            <Database size={14} />
+                            Data Board
+                        </button>
+                        <button
                             onClick={() => setActiveTab('resources')}
                             className={cn(
                                 "px-6 py-2 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center gap-2",
@@ -155,7 +297,155 @@ export const DashboardView = () => {
 
                 {/* Main Content Area */}
                 <AnimatePresence mode="wait">
-                    {activeTab === 'analysis' ? (
+                    {activeTab === 'data' ? (
+                        <motion.div
+                            key="data"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="space-y-8"
+                        >
+                            {/* Import New Data Card */}
+                            <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-8 flex items-center justify-between cursor-pointer hover:shadow-lg hover:shadow-emerald-500/10 transition-all group"
+                                onClick={() => navigate('/data/new')}
+                            >
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-bold text-foreground group-hover:text-emerald-600 transition-colors">Import New Data Batch</h2>
+                                    <p className="text-muted-foreground max-w-lg">Upload new image datasets to the system for analysis or model training.</p>
+                                </div>
+                                <div className="w-16 h-16 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                    <Plus size={32} />
+                                </div>
+                            </div>
+
+                            {/* Data Batches List */}
+                            <div>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                    <h2 className="text-lg font-bold flex items-center gap-2">
+                                        <Database size={18} className="text-muted-foreground" />
+                                        Your Data Batches
+                                    </h2>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search batches..."
+                                                value={dataSearch}
+                                                onChange={(e) => setDataSearch(e.target.value)}
+                                                className="pl-9 pr-4 py-1.5 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none w-48"
+                                            />
+                                        </div>
+                                        <select
+                                            value={dataTimeFilter}
+                                            onChange={(e) => setDataTimeFilter(e.target.value)}
+                                            className="px-3 py-1.5 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                        >
+                                            <option value="all">All Time</option>
+                                            <option value="today">Today</option>
+                                            <option value="week">This Week</option>
+                                            <option value="month">This Month</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {viewMode === 'grid' ? (
+                                    /* GRID VIEW */
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {visibleDataBatches.length > 0 ? (
+                                            visibleDataBatches.map((batch) => (
+                                                <div key={batch.id} className="group bg-card border border-border/60 hover:border-emerald-500/50 transition-all rounded-xl p-5 hover:shadow-lg hover:shadow-emerald-500/5 cursor-pointer" onClick={() => navigate(`/data/${batch.id}`)}>
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-600">
+                                                            <Database size={20} />
+                                                        </div>
+                                                        <div className={cn("px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider",
+                                                            batch.status === 'Active' ? "bg-green-500/10 text-green-600" : "bg-neutral-500/10 text-neutral-600"
+                                                        )}>
+                                                            {batch.status}
+                                                        </div>
+                                                    </div>
+                                                    <h3 className="font-bold text-foreground mb-1 group-hover:text-emerald-600 transition-colors">{batch.name}</h3>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+                                                        <span>{batch.id}</span>
+                                                        <span>•</span>
+                                                        <span>{batch.date}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs pt-4 border-t border-border/40">
+                                                        <div className="flex gap-4 text-muted-foreground">
+                                                            <span className="flex items-center gap-1"><FileImage size={12} /> {batch.imageCount} images</span>
+                                                            <span className="flex items-center gap-1"><User size={12} /> {batch.uploader}</span>
+                                                        </div>
+                                                        <div className="text-xs font-medium text-primary">
+                                                            {batch.linkedTasks} linked tasks
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full py-12 text-center text-muted-foreground bg-card/50 border border-border/50 rounded-xl border-dashed">
+                                                No data batches found matching your filters.
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* LIST (ROW) VIEW */
+                                    <div className="space-y-3">
+                                        {visibleDataBatches.length > 0 ? (
+                                            visibleDataBatches.map((batch) => (
+                                                <div key={batch.id} className="bg-card border border-border/60 hover:border-emerald-500/50 transition-all rounded-lg p-2.5 flex items-center justify-between hover:shadow-sm cursor-pointer group" onClick={() => navigate(`/data/${batch.id}`)}>
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600">
+                                                            <Database size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-foreground group-hover:text-emerald-600 transition-colors text-sm">{batch.name}</h3>
+                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                                <span>{batch.id}</span>
+                                                                <span className="w-1 h-1 rounded-full bg-border" />
+                                                                <span>{batch.uploader}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-8 mr-4">
+                                                        <div className="text-xs text-muted-foreground text-right hidden md:block">
+                                                            <div className="font-medium">{batch.date}</div>
+                                                            <div className="opacity-70">{batch.imageCount} images</div>
+                                                        </div>
+                                                        <div className={cn("px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-24 text-center",
+                                                            batch.status === 'Active' ? "bg-green-500/10 text-green-600" : "bg-neutral-500/10 text-neutral-600"
+                                                        )}>
+                                                            {batch.status}
+                                                        </div>
+                                                    </div>
+
+                                                    <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                                        <ArrowRight size={18} />
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-12 text-center text-muted-foreground bg-card/50 border border-border/50 rounded-xl border-dashed">
+                                                No data batches found matching your filters.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                )}
+
+                                <PaginationControls
+                                    currentPage={dataPage}
+                                    totalItems={filteredDataBatches.length}
+                                    itemsPerPage={dataPerPage}
+                                    onPageChange={setDataPage}
+                                    onItemsPerPageChange={setDataPerPage}
+                                />
+                            </div>
+                        </motion.div>
+                    ) : activeTab === 'analysis' ? (
                         <motion.div
                             key="analysis"
                             initial={{ opacity: 0, y: 10 }}
@@ -176,6 +466,7 @@ export const DashboardView = () => {
                                     <Plus size={32} />
                                 </div>
                             </div>
+
 
                             {/* Recent Analysis Tasks List */}
                             <div>
@@ -231,9 +522,9 @@ export const DashboardView = () => {
                                 {viewMode === 'grid' ? (
                                     /* GRID VIEW */
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {filteredAnalysisTasks.length > 0 ? (
-                                            filteredAnalysisTasks.map((task) => (
-                                                <div key={task.id} className="group bg-card border border-border/60 hover:border-primary/50 transition-all rounded-xl p-5 hover:shadow-lg hover:shadow-primary/5 cursor-pointer relative overflow-hidden" onClick={() => navigate(task.type === 'particle' ? '/particles' : '/fibers')}>
+                                        {visibleAnalysisTasks.length > 0 ? (
+                                            visibleAnalysisTasks.map((task) => (
+                                                <div key={task.id} className="group bg-card border border-border/60 hover:border-primary/50 transition-all rounded-xl p-5 hover:shadow-lg hover:shadow-primary/5 cursor-pointer relative overflow-hidden" onClick={() => navigate(task.type === 'particle' ? `/${task.id}/particles` : `/${task.id}/fibers`)}>
                                                     <div className="flex justify-between items-start mb-4">
                                                         <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", task.thumbnail)}>
                                                             <FileImage className={cn("opacity-80", task.type === 'fiber' ? 'text-emerald-500' : 'text-blue-500')} size={20} />
@@ -269,12 +560,12 @@ export const DashboardView = () => {
                                 ) : (
                                     /* LIST (ROW) VIEW */
                                     <div className="space-y-3">
-                                        {filteredAnalysisTasks.length > 0 ? (
-                                            filteredAnalysisTasks.map((task) => (
-                                                <div key={task.id} className="bg-card border border-border/60 hover:border-primary/50 transition-all rounded-xl p-4 flex items-center justify-between hover:shadow-md cursor-pointer group" onClick={() => navigate(task.type === 'particle' ? '/particles' : '/fibers')}>
-                                                    <div className="flex items-center gap-4 flex-1">
-                                                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", task.thumbnail)}>
-                                                            {task.type === 'fiber' ? <Activity size={18} className="text-emerald-500" /> : <Layers size={18} className="text-blue-500" />}
+                                        {visibleAnalysisTasks.length > 0 ? (
+                                            visibleAnalysisTasks.map((task) => (
+                                                <div key={task.id} className="bg-card border border-border/60 hover:border-primary/50 transition-all rounded-lg p-2.5 flex items-center justify-between hover:shadow-sm cursor-pointer group" onClick={() => navigate(task.type === 'particle' ? `/${task.id}/particles` : `/${task.id}/fibers`)}>
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <div className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0", task.thumbnail)}>
+                                                            {task.type === 'fiber' ? <Activity size={16} className="text-emerald-500" /> : <Layers size={16} className="text-blue-500" />}
                                                         </div>
                                                         <div>
                                                             <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm">{task.name}</h3>
@@ -312,6 +603,14 @@ export const DashboardView = () => {
                                         )}
                                     </div>
                                 )}
+
+                                <PaginationControls
+                                    currentPage={analysisPage}
+                                    totalItems={filteredAnalysisTasks.length}
+                                    itemsPerPage={analysisPerPage}
+                                    onPageChange={setAnalysisPage}
+                                    onItemsPerPageChange={setAnalysisPerPage}
+                                />
                             </div>
                         </motion.div>
                     ) : activeTab === 'training' ? (
@@ -388,8 +687,8 @@ export const DashboardView = () => {
                                 {viewMode === 'grid' ? (
                                     /* GRID VIEW */
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {filteredFinetuningTasks.length > 0 ? (
-                                            filteredFinetuningTasks.map((task) => (
+                                        {visibleFinetuningTasks.length > 0 ? (
+                                            visibleFinetuningTasks.map((task) => (
                                                 <div key={task.id} className="group bg-card border border-border/60 hover:border-indigo-500/50 transition-all rounded-xl p-5 hover:shadow-lg hover:shadow-indigo-500/5 cursor-pointer" onClick={() => navigate('/finetune')}>
                                                     <div className="flex justify-between items-start mb-4">
                                                         <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", task.thumbnail)}>
@@ -418,12 +717,12 @@ export const DashboardView = () => {
                                 ) : (
                                     /* LIST (ROW) VIEW - FINE TUNING */
                                     <div className="space-y-3">
-                                        {filteredFinetuningTasks.length > 0 ? (
-                                            filteredFinetuningTasks.map((task) => (
-                                                <div key={task.id} className="bg-card border border-border/60 hover:border-indigo-500/50 transition-all rounded-xl p-4 flex items-center justify-between hover:shadow-md cursor-pointer group" onClick={() => navigate('/finetune')}>
-                                                    <div className="flex items-center gap-4 flex-1">
-                                                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", task.thumbnail)}>
-                                                            <Activity size={18} className="text-indigo-500" />
+                                        {visibleFinetuningTasks.length > 0 ? (
+                                            visibleFinetuningTasks.map((task) => (
+                                                <div key={task.id} className="bg-card border border-border/60 hover:border-indigo-500/50 transition-all rounded-lg p-2.5 flex items-center justify-between hover:shadow-sm cursor-pointer group" onClick={() => navigate('/finetune')}>
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <div className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0", task.thumbnail)}>
+                                                            <Activity size={16} className="text-indigo-500" />
                                                         </div>
                                                         <div>
                                                             <h3 className="font-bold text-foreground group-hover:text-indigo-500 transition-colors text-sm">{task.name}</h3>
@@ -459,6 +758,14 @@ export const DashboardView = () => {
                                         )}
                                     </div>
                                 )}
+
+                                <PaginationControls
+                                    currentPage={finetunePage}
+                                    totalItems={filteredFinetuningTasks.length}
+                                    itemsPerPage={finetunePerPage}
+                                    onPageChange={setFinetunePage}
+                                    onItemsPerPageChange={setFinetunePerPage}
+                                />
                             </div>
                         </motion.div>
                     ) : (

@@ -16,7 +16,11 @@ const MOCK_PARTICLES: Particle[] = Array.from({ length: 20 }).map((_, i) => ({
     radius: Math.random() * 20 + 5,
 }));
 
-export const InteractiveCanvas = () => {
+interface InteractiveCanvasProps {
+    overlayMode?: 'default' | 'scalebar';
+}
+
+export const InteractiveCanvas = ({ overlayMode = 'default' }: InteractiveCanvasProps) => {
     const [scale, setScale] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -75,8 +79,28 @@ export const InteractiveCanvas = () => {
                         SEM IMAGE PLACEHOLDER
                     </div>
 
-                    {/* Particles Overlay */}
-                    {MOCK_PARTICLES.map(p => (
+                    {/* Scale Bar Overlay Mode */}
+                    {overlayMode === 'scalebar' && (
+                        <>
+                            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                            {/* Detected Scale Bar Area */}
+                            <div className="absolute bottom-10 right-10 border-2 border-yellow-400 bg-yellow-400/20 p-2 pointer-events-auto cursor-crosshair">
+                                <div className="h-1 bg-white w-[200px] relative shadow-sm">
+                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-white font-bold text-sm bg-black/60 px-2 rounded">
+                                        500 μm
+                                    </div>
+                                    <div className="absolute h-2 w-px bg-white left-0 -top-0.5" />
+                                    <div className="absolute h-2 w-px bg-white right-0 -top-0.5" />
+                                </div>
+                                <div className="absolute -top-8 left-0 text-[10px] text-yellow-400 font-bold uppercase tracking-wider">
+                                    Detected Scale Bar
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Standard Particles Overlay (only show if NOT in scalebar mode) */}
+                    {overlayMode !== 'scalebar' && MOCK_PARTICLES.map(p => (
                         <div
                             key={p.id}
                             className="absolute rounded-full border-2 border-green-500/60 hover:border-green-400 hover:bg-green-500/10 cursor-pointer transition-colors"

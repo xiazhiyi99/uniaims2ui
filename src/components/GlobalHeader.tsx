@@ -2,19 +2,23 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Microscope, Bell } from 'lucide-react';
 
+import { useSidebar } from '../context/SidebarContext';
+
 export const GlobalHeader = () => {
     const location = useLocation();
+    const { isCollapsed } = useSidebar();
 
     // Logic to determine if we are in Dashboard mode
-    const isDashboard = location.pathname.startsWith('/dashboard') || location.pathname === '/' || location.pathname === '/upload';
+    const isDashboard = location.pathname.startsWith('/dashboard') || location.pathname === '/' || location.pathname === '/upload' || location.pathname === '/data/new';
+
 
     return (
         <motion.div
             initial={false}
             animate={{
-                width: isDashboard ? '100%' : '16rem', // 16rem = w-64 (Sidebar width)
+                width: isDashboard ? '100%' : (isCollapsed ? '5rem' : '16rem'), // 5rem = w-20, 16rem = w-64
             }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="fixed top-0 left-0 z-50 h-16 bg-card border-b border-border/40 flex items-center overflow-hidden"
         >
             {/* Logo Section - Always Fixed on Left */}
@@ -22,9 +26,11 @@ export const GlobalHeader = () => {
                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                     <Microscope className="text-primary-foreground h-5 w-5" />
                 </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent whitespace-nowrap">
-                    UniAIMS
-                </h1>
+                {!isCollapsed && (
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent whitespace-nowrap">
+                        UniAIMS
+                    </h1>
+                )}
             </div>
 
             {/* Dashboard Content - Scrolling Ticker */}
