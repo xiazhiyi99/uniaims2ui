@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { CheckSquare, Square, Layers, Settings, Plus, X, Activity } from 'lucide-react';
+import { CheckSquare, Square, Layers, Settings, Plus, X, Activity, FilePlus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useSidebar } from '../../context/SidebarContext';
 import { motion } from 'framer-motion';
@@ -209,6 +209,24 @@ export const TaskComparisonView = () => {
 
     return (
         <div className="h-full p-1 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="mb-6 px-1 pt-1 shrink-0">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            Comparing Task <span className="text-primary">{currentTaskName}</span> with other tasks
+                        </h1>
+                        <p className="text-muted-foreground mt-1">
+                            Analyze and compare performance metrics between the current task and historical data to identify trends.
+                        </p>
+                    </div>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-sm font-medium">
+                        <FilePlus size={18} />
+                        <span>Add current to report</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Main Content Area with Adaptive Sidebar */}
             <div className="flex-1 flex min-h-0">
 
