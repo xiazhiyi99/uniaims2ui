@@ -61,11 +61,12 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
             ]
         },
         {
-            title: 'Results',
+            title: 'Analysis',
             items: [
                 { label: 'Attribute', icon: 'BarChart3', path: '/:taskId/analysis/attribute' },
                 { label: 'Correlation Analysis', icon: 'Activity', path: '/:taskId/analysis/correlation' },
-                { label: 'Comparison Analysis', icon: 'BarChart3', path: '/:taskId/analysis/comparison' },
+                { label: 'Image Comparison', icon: 'BarChart3', path: '/:taskId/analysis/comparison' },
+                { label: 'Task Comparison', icon: 'BarChart3', path: '/:taskId/analysis/task_comparison' },
                 { label: 'Reports', icon: 'FileText', path: '/:taskId/reports' }
             ]
         },
@@ -90,7 +91,7 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
             ]
         },
         {
-            title: 'Results',
+            title: 'Analysis',
             items: [
                 { label: 'Analysis Hub', icon: 'BarChart3', path: '/:taskId/analysis' },
                 { label: 'Reports', icon: 'FileText', path: '/:taskId/reports' }

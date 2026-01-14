@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { CheckSquare, Square, Layers, Settings, FilePlus } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
+import { motion } from 'framer-motion';
 import {
     BarChart,
     Bar,
@@ -93,6 +95,7 @@ const CustomViolinShape = (props: any) => {
 
 export const ComparisonAnalysisView = () => {
     const { taskId } = useParams();
+    const { isCollapsed } = useSidebar();
 
     // State
     const [selectedAttribute, setSelectedAttribute] = useState<string>('Diameter');
@@ -143,9 +146,39 @@ export const ComparisonAnalysisView = () => {
         }
     };
 
+    // Shared Image List Component
+    const ImageList = ({ vertical = false }: { vertical?: boolean }) => (
+        <div className={`grid gap-3 ${vertical ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5'}`}>
+            {IMAGES.map(img => {
+                const isSelected = selectedImages.includes(img.id);
+                return (
+                    <div
+                        key={img.id}
+                        onClick={() => toggleImage(img.id)}
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${isSelected
+                            ? 'bg-primary/5 border-primary/20'
+                            : 'hover:bg-muted border-border'
+                            }`}
+                    >
+                        <div className={`shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate text-foreground">{img.id}</div>
+                            <div className="text-xs text-muted-foreground flex justify-between mt-1">
+                                <span>{img.status}</span>
+                                {img.count > 0 && <span>{img.count}</span>}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
     return (
-        <div className="h-full flex flex-col gap-6 overflow-y-auto p-1">
-            <div className="flex justify-between items-center shrink-0">
+        <div className="h-full flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center shrink-0 p-1 mb-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Comparison Analysis: {taskId || 'Unknown Task'}</h2>
                     <p className="text-muted-foreground">Compare attribute distributions across multiple images.</p>
@@ -158,151 +191,169 @@ export const ComparisonAnalysisView = () => {
                 </div>
             </div>
 
-            {/* Top Section: Visualization & Settings */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0 min-h-[450px]">
-                {/* Visual Panel (Left - 2/3) */}
-                <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col min-h-[400px]">
-                    <h3 className="text-lg font-semibold mb-6 flex justify-between items-center">
-                        <span>{selectedAttribute} Distribution Comparison</span>
-                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded">
-                            {selectedImages.length} Images Selected
-                        </span>
-                    </h3>
-                    <div className="flex-1 w-full min-h-0">
-                        {selectedImages.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={violinData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                                    <XAxis dataKey="id" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis
-                                        label={{ value: selectedAttribute, angle: -90, position: 'insideLeft', fill: '#666' }}
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        scale={logScale ? 'log' : 'auto'}
-                                        domain={['auto', 'auto']}
-                                        allowDataOverflow={true}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        content={({ active, payload }) => {
-                                            if (active && payload && payload.length) {
-                                                const data = payload[0].payload;
-                                                return (
-                                                    <div className="bg-card border border-border rounded-lg p-3 shadow-md">
-                                                        <p className="font-semibold mb-1">{data.id}</p>
-                                                        <p className="text-xs text-muted-foreground">Mean: {data.mean.toFixed(2)}</p>
-                                                        <p className="text-xs text-muted-foreground">Range: {data.min.toFixed(2)} - {data.max.toFixed(2)}</p>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        }}
-                                    />
-                                    {/* Ghost Bar to set the scale? No, actual data */}
-                                    {/* We use 'value' (max) as the bar height, but the shape draws the distribution */}
-                                    <Bar dataKey="value" shape={<CustomViolinShape />} >
-                                        {/* Use distinct colors for each violin? or same? */}
-                                        {violinData.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={`hsl(${210 + index * 30}, 70%, 50%)`} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="h-full flex items-center justify-center text-muted-foreground">
-                                Select images to view comparison
-                            </div>
-                        )}
+            <div className="flex-1 flex min-h-0">
+                {/* Collapsed Sidebar Mode: Left Panel for Images */}
+                <motion.div
+                    initial={false}
+                    animate={{
+                        width: isCollapsed ? 176 : 0,
+                        marginRight: isCollapsed ? 16 : 0,
+                        opacity: isCollapsed ? 1 : 0
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="bg-card rounded-xl border border-border shadow-sm flex flex-col shrink-0 overflow-hidden"
+                >
+                    <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20 min-w-[176px]">
+                        <h3 className="font-semibold flex items-center gap-2 text-sm">
+                            <Layers size={16} />
+                            Select Images
+                        </h3>
+                        <button
+                            onClick={toggleSelectAll}
+                            className="text-xs text-primary hover:underline font-medium"
+                        >
+                            {isAllSelected ? 'None' : 'All'}
+                        </button>
                     </div>
-                </div>
-
-                {/* Settings Panel (Right - 1/3) */}
-                <div className="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col">
-                    <div className="flex items-center gap-2 mb-6 text-foreground">
-                        <Settings size={18} />
-                        <h3 className="font-semibold">Comparison Settings</h3>
+                    <div className="flex-1 overflow-y-auto p-4 min-w-[176px]">
+                        <ImageList vertical={true} />
                     </div>
+                </motion.div>
 
-                    <div className="space-y-6">
-                        {/* Attribute Selection */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Attribute to Compare</label>
-                            <select
-                                value={selectedAttribute}
-                                onChange={(e) => setSelectedAttribute(e.target.value)}
-                                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                                {ATTRIBUTES.map(attr => (
-                                    <option key={attr} value={attr}>{attr}</option>
-                                ))}
-                            </select>
-                        </div>
+                {/* Main Scrollable Content */}
+                <div className="flex-1 overflow-y-auto flex flex-col pr-1 pb-1">
 
-                        {/* Visual Options */}
-                        <div className="space-y-3 pt-4 border-t border-border">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-foreground">Log Scale (Y)</span>
-                                <div
-                                    className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${logScale ? 'bg-primary' : 'bg-muted'}`}
-                                    onClick={() => setLogScale(!logScale)}
-                                >
-                                    <div className={`absolute top-0.5 w-4 h-4 bg-background rounded-full shadow-sm transition-all ${logScale ? 'left-[18px]' : 'left-0.5'}`} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Info Box */}
-                        <div className="bg-muted/50 p-4 rounded-lg mt-4">
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">About Violin Plots</h4>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                Violin plots show the probability density of the data at different values, usually smoothed by a kernel density estimator.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Section: Image Selection (Full Width) */}
-            <div className="flex-1 min-h-[250px] bg-card rounded-xl border border-border shadow-sm flex flex-col overflow-hidden shrink-0">
-                <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
-                    <h3 className="font-semibold flex items-center gap-2 text-sm">
-                        <Layers size={16} />
-                        Select Images to Compare
-                    </h3>
-                    <button
-                        onClick={toggleSelectAll}
-                        className="text-xs text-primary hover:underline font-medium"
+                    {/* Expanded Sidebar Mode: Top Panel for Images */}
+                    <motion.div
+                        initial={false}
+                        animate={{
+                            height: isCollapsed ? 0 : 250,
+                            opacity: isCollapsed ? 0 : 1,
+                            marginBottom: isCollapsed ? 0 : 24
+                        }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="bg-card rounded-xl border border-border shadow-sm flex flex-col overflow-hidden shrink-0"
                     >
-                        {isAllSelected ? 'Deselect All' : 'Select All'}
-                    </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {IMAGES.map(img => {
-                            const isSelected = selectedImages.includes(img.id);
-                            return (
-                                <div
-                                    key={img.id}
-                                    onClick={() => toggleImage(img.id)}
-                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${isSelected
-                                        ? 'bg-primary/5 border-primary/20'
-                                        : 'hover:bg-muted border-border'
-                                        }`}
-                                >
-                                    <div className={`shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
-                                        {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                        <div className="p-4 border-b border-border flex items-center justify-between bg-muted/20">
+                            <h3 className="font-semibold flex items-center gap-2 text-sm">
+                                <Layers size={16} />
+                                Select Images
+                            </h3>
+                            <button
+                                onClick={toggleSelectAll}
+                                className="text-xs text-primary hover:underline font-medium"
+                            >
+                                {isAllSelected ? 'Deselect All' : 'Select All'}
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <ImageList />
+                        </div>
+                    </motion.div>
+
+                    {/* Top Section: Visualization & Settings */}
+                    <div className="flex-1 min-h-[450px] grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        {/* Visual Panel (Left - 2/3) */}
+                        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col h-full min-h-[400px]">
+                            <h3 className="text-lg font-semibold mb-6 flex justify-between items-center">
+                                <span>{selectedAttribute} Distribution Comparison</span>
+                                <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded">
+                                    {selectedImages.length} Images Selected
+                                </span>
+                            </h3>
+                            <div className="flex-1 w-full min-h-0">
+                                {selectedImages.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={violinData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                            <XAxis dataKey="id" fontSize={12} tickLine={false} axisLine={false} />
+                                            <YAxis
+                                                label={{ value: selectedAttribute, angle: -90, position: 'insideLeft', fill: '#666' }}
+                                                fontSize={12}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                scale={logScale ? 'log' : 'auto'}
+                                                domain={['auto', 'auto']}
+                                                allowDataOverflow={true}
+                                            />
+                                            <Tooltip
+                                                cursor={{ fill: 'transparent' }}
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div className="bg-card border border-border rounded-lg p-3 shadow-md">
+                                                                <p className="font-semibold mb-1">{data.id}</p>
+                                                                <p className="text-xs text-muted-foreground">Mean: {data.mean.toFixed(2)}</p>
+                                                                <p className="text-xs text-muted-foreground">Range: {data.min.toFixed(2)} - {data.max.toFixed(2)}</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                            {/* Ghost Bar to set the scale? No, actual data */}
+                                            {/* We use 'value' (max) as the bar height, but the shape draws the distribution */}
+                                            <Bar dataKey="value" shape={<CustomViolinShape />} >
+                                                {/* Use distinct colors for each violin? or same? */}
+                                                {violinData.map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={`hsl(${210 + index * 30}, 70%, 50%)`} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                                        Select images to view comparison
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium truncate text-foreground">{img.id}</div>
-                                        <div className="text-xs text-muted-foreground flex justify-between mt-1">
-                                            <span>{img.status}</span>
-                                            {img.count > 0 && <span>{img.count}</span>}
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Settings Panel (Right - 1/3) */}
+                        <div className="bg-card rounded-xl border border-border p-6 shadow-sm flex flex-col h-full">
+                            <div className="flex items-center gap-2 mb-6 text-foreground">
+                                <Settings size={18} />
+                                <h3 className="font-semibold">Comparison Settings</h3>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Attribute Selection */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Attribute to Compare</label>
+                                    <select
+                                        value={selectedAttribute}
+                                        onChange={(e) => setSelectedAttribute(e.target.value)}
+                                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                    >
+                                        {ATTRIBUTES.map(attr => (
+                                            <option key={attr} value={attr}>{attr}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Visual Options */}
+                                <div className="space-y-3 pt-4 border-t border-border">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-foreground">Log Scale (Y)</span>
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${logScale ? 'bg-primary' : 'bg-muted'}`}
+                                            onClick={() => setLogScale(!logScale)}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 bg-background rounded-full shadow-sm transition-all ${logScale ? 'left-[18px]' : 'left-0.5'}`} />
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })}
+
+                                {/* Info Box */}
+                                <div className="bg-muted/50 p-4 rounded-lg mt-4">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">About Violin Plots</h4>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        Violin plots show the probability density of the data at different values, usually smoothed by a kernel density estimator.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

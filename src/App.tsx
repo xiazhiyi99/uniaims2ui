@@ -18,6 +18,7 @@ import { CreateDataBatchView } from './features/data/CreateDataBatchView';
 import { AttributeAnalysisView } from './features/analysis/AttributeAnalysisView';
 import { CorrelationAnalysisView } from './features/analysis/CorrelationAnalysisView';
 import { ComparisonAnalysisView } from './features/analysis/ComparisonAnalysisView';
+import { TaskComparisonView } from './features/analysis/TaskComparisonView';
 
 import { DocsView } from './features/docs/DocsView';
 
@@ -55,6 +56,7 @@ const AnimatedRoutes = () => {
             <Route path="attribute" element={<AttributeAnalysisView />} />
             <Route path="correlation" element={<CorrelationAnalysisView />} />
             <Route path="comparison" element={<ComparisonAnalysisView />} />
+            <Route path="task_comparison" element={<TaskComparisonView />} />
           </Route>
           <Route path="/finetune" element={<FineTuningView />} />
           <Route path="/:taskId/reports" element={<ReportsView />} />
