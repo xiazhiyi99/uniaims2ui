@@ -117,6 +117,7 @@ export const TaskComparisonView = () => {
     // State
     const [selectedAttribute, setSelectedAttribute] = useState<string>('Diameter');
     const [taskSearchQuery, setTaskSearchQuery] = useState('');
+    const [isTaskDropdownOpen, setIsTaskDropdownOpen] = useState(false);
 
     // List of tasks to compare. Start with current task.
     // We treat the current task ID from params as 'current', but let's give it an ID structure.
@@ -148,6 +149,7 @@ export const TaskComparisonView = () => {
         if (!compareTasks.find(t => t.id === task.id)) {
             setCompareTasks([...compareTasks, task]);
         }
+        setIsTaskDropdownOpen(false);
     };
 
     const handleRemoveTask = (taskId: string) => {
@@ -373,12 +375,23 @@ export const TaskComparisonView = () => {
                                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tasks</label>
                                         {/* Add Task Dropdown with Search */}
                                         <div className="relative group">
-                                            <button className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-primary bg-primary/10 rounded-md hover:bg-primary/20 transition-colors">
+                                            <button
+                                                className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md transition-colors ${isTaskDropdownOpen ? 'bg-primary/20 text-primary' : 'text-primary bg-primary/10 hover:bg-primary/20'}`}
+                                                onClick={() => setIsTaskDropdownOpen(!isTaskDropdownOpen)}
+                                            >
                                                 <Plus size={14} />
                                                 <span>Add Task</span>
                                             </button>
 
-                                            <div className="absolute right-0 top-full mt-2 w-72 bg-popover border border-border rounded-xl shadow-xl hidden group-hover:block hover:block z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                            {/* Backdrop for clicking outside */}
+                                            {isTaskDropdownOpen && (
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={() => setIsTaskDropdownOpen(false)}
+                                                />
+                                            )}
+
+                                            <div className={`absolute right-0 top-full mt-2 w-72 bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${isTaskDropdownOpen ? 'block' : 'hidden'}`}>
                                                 <div className="p-3 border-b border-border bg-muted/30">
                                                     <div className="relative">
                                                         <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
